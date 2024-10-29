@@ -69,5 +69,5 @@ Contribuições são bem-vindas! Se você deseja melhorar o projeto, sinta-se à
 
 Autor
 
-Este projeto foi desenvolvido por Carminati como parte de um sistema interativo de reconhecimento de espécies de peixes.
+Este projeto foi desenvolvido pela equipe de robótica Tecnorob Evolution como parte de um sistema interativo de reconhecimento de espécies de peixes.
 

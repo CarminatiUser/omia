@@ -8,33 +8,33 @@
     <button type="button" onclick="init()">Iniciar</button>
     <div id="webcam-container"></div>
     <div id="label-container"></div>
-    
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script type="text/javascript">
-        // Link para seu modelo exportado da Teachable Machine
         const URL = "./";
 
         let model, webcam, labelContainer, maxPredictions;
-        let lastIdentifiedFish = ""; // Armazena o último peixe identificado
+        let predictionQueue = []; // Fila de predições
+        const CONFIRMATION_THRESHOLD = 5; // Número de confirmações consecutivas necessárias
+        const PROBABILITY_THRESHOLD = 0.7; // Probabilidade mínima para considerar válida
+        let lastSpokenFish = ""; // Último peixe falado
 
-        // Carrega o modelo de imagem e configura a webcam
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
 
-            // Carregar o modelo e metadados
+            // Carrega o modelo
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
 
-            // Configurar a webcam
-            const flip = true; // Inverter a webcam para efeito de espelho
-            webcam = new tmImage.Webcam(200, 200, flip); // largura, altura, inverter
-            await webcam.setup(); // Solicita acesso à webcam
+            // Configura a webcam
+            const flip = true; 
+            webcam = new tmImage.Webcam(200, 200, flip);
+            await webcam.setup();
             await webcam.play();
             window.requestAnimationFrame(loop);
 
-            // Anexa elementos ao DOM
+            // Configura os elementos do DOM
             document.getElementById("webcam-container").appendChild(webcam.canvas);
             labelContainer = document.getElementById("label-container");
             for (let i = 0; i < maxPredictions; i++) {
@@ -43,12 +43,11 @@
         }
 
         async function loop() {
-            webcam.update(); // Atualiza o quadro da webcam
+            webcam.update();
             await predict();
             window.requestAnimationFrame(loop);
         }
 
-        // Executa a predição da imagem da webcam
         async function predict() {
             const prediction = await model.predict(webcam.canvas);
             let highestPrediction = { className: "", probability: 0 };
@@ -58,16 +57,27 @@
                     prediction[i].className + ": " + prediction[i].probability.toFixed(2);
                 labelContainer.childNodes[i].innerHTML = classPrediction;
 
-                // Encontrar a predição com maior probabilidade
+                // Determina a predição com maior probabilidade
                 if (prediction[i].probability > highestPrediction.probability) {
                     highestPrediction = prediction[i];
                 }
             }
 
-            // Se a maior predição tiver uma probabilidade significativa e for diferente da última, falar o nome do peixe
-            if (highestPrediction.probability > 0.7 && highestPrediction.className !== lastIdentifiedFish) {
-                lastIdentifiedFish = highestPrediction.className;
-                const fala = new SpeechSynthesisUtterance(lastIdentifiedFish);
+            // Adiciona a predição à fila se a probabilidade for suficiente
+            if (highestPrediction.probability > PROBABILITY_THRESHOLD) {
+                predictionQueue.push(highestPrediction.className);
+                if (predictionQueue.length > CONFIRMATION_THRESHOLD) {
+                    predictionQueue.shift(); // Remove o mais antigo para manter o tamanho fixo
+                }
+            }
+
+            // Verifica se todas as últimas predições na fila são iguais
+            const isConsistent = predictionQueue.every(p => p === highestPrediction.className);
+
+            // Fala o nome do peixe se for consistente e diferente do último falado
+            if (isConsistent && predictionQueue.length === CONFIRMATION_THRESHOLD && highestPrediction.className !== lastSpokenFish) {
+                lastSpokenFish = highestPrediction.className;
+                const fala = new SpeechSynthesisUtterance(lastSpokenFish);
                 window.speechSynthesis.speak(fala);
             }
         }

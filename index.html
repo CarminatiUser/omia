@@ -16,7 +16,7 @@
         let model, webcam, labelContainer, maxPredictions;
         let predictionQueue = []; // Fila de predições
         const CONFIRMATION_THRESHOLD = 5; // Número de confirmações consecutivas necessárias
-        const PROBABILITY_THRESHOLD = 0.7; // Probabilidade mínima para considerar válida
+        const PROBABILITY_THRESHOLD = 0.5; // Probabilidade mínima para considerar válida
         let lastSpokenFish = ""; // Último peixe falado
 
         async function init() {
